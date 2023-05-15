@@ -1,0 +1,41 @@
+name: HTML CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: 
+      name: staging
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Generate build number
+      run: echo "The build number $GITHUB_RUN_NUMBER 🏗"
+    - name: Build docker 🐳
+      run: docker build . -t=mockaroo-random-data-web:github-build-$GITHUB_RUN_NUMBER
+    - name: Build Static Web site 🏗
+      run: make build
+    - name: Upload production-ready build files
+      uses: actions/upload-artifact@v2
+      with:
+        name: production-files
+        path: ./dist
+
+  deploy:
+      name: Deploy
+      needs: build
+      runs-on: ubuntu-latest
+      
+      steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: production-files
+          path: ./dist
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
